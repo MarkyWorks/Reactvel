@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useRef } from 'react';
 
 type Notify = {
     type: 'success' | 'error';
@@ -8,45 +8,28 @@ type Notify = {
 
 export default function NotifyToast() {
     const { notify } = usePage<{ notify?: Notify | null }>().props;
-    const [activeNotify, setActiveNotify] = useState<Notify | null>(null);
-    const [toastKey, setToastKey] = useState(0);
+    const lastNotifyRef = useRef<Notify | null>(null);
+    const toastKeyRef = useRef(0);
 
-    useEffect(() => {
-        if (!notify?.message) {
-            return;
-        }
-
-        // Force a fresh DOM node so the CSS animation always restarts.
-        setActiveNotify(notify);
-        setToastKey((key) => key + 1);
-    }, [notify]);
-
-    useEffect(() => {
-        if (!activeNotify) {
-            return;
-        }
-
-        const timeoutId = window.setTimeout(() => {
-            setActiveNotify(null);
-        }, 3300);
-
-        return () => window.clearTimeout(timeoutId);
-    }, [activeNotify, toastKey]);
-
-    if (!activeNotify?.message) {
+    if (!notify?.message) {
         return null;
+    }
+
+    if (notify !== lastNotifyRef.current) {
+        lastNotifyRef.current = notify;
+        toastKeyRef.current += 1;
     }
 
     return (
         <div className="pointer-events-none fixed top-4 right-4 z-50">
             <div
-                key={toastKey}
+                key={toastKeyRef.current}
                 className={`notify-toast pointer-events-auto inline-flex w-auto max-w-[calc(100vw-2rem)] rounded-md border bg-background px-3 py-2 text-xs shadow-md ${
-                    activeNotify.type === 'success' ? 'border-emerald-200' : 'border-red-200'
+                    notify.type === 'success' ? 'border-emerald-200' : 'border-red-200'
                 }`}
             >
                 <p className="text-foreground whitespace-pre-wrap break-words">
-                    {activeNotify.message}
+                    {notify.message}
                 </p>
             </div>
         </div>
