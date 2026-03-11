@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 test('verified users can visit the user management page', function () {
@@ -11,9 +13,9 @@ test('verified users can visit the user management page', function () {
         ->assertOk();
 });
 
-test('verified users can visit create and edit user pages', function () {
-    $user = User::factory()->create();
-    $target = User::factory()->create();
+test('admins can visit create and edit user pages', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
+    $target = User::factory()->create(['role' => 'User']);
 
     $this->actingAs($user)
         ->get(route('users.create'))
@@ -24,8 +26,8 @@ test('verified users can visit create and edit user pages', function () {
         ->assertOk();
 });
 
-test('verified users can create a user', function () {
-    $user = User::factory()->create();
+test('admins can create a user', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
 
     $this->actingAs($user)
         ->post(route('users.store'), [
@@ -44,9 +46,9 @@ test('verified users can create a user', function () {
     ]);
 });
 
-test('verified users can update a user', function () {
-    $user = User::factory()->create();
-    $target = User::factory()->create();
+test('admins can update a user', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
+    $target = User::factory()->create(['role' => 'User']);
 
     $this->actingAs($user)
         ->put(route('users.update', $target), [
@@ -64,9 +66,10 @@ test('verified users can update a user', function () {
         ->and(Hash::check('NewPassword123!', $target->fresh()->password))->toBeTrue();
 });
 
-test('verified users can update a user without changing password', function () {
-    $user = User::factory()->create();
+test('admins can update a user without changing password', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
     $target = User::factory()->create([
+        'role' => 'User',
         'password' => 'original-password',
     ]);
     $originalPasswordHash = $target->password;
@@ -75,7 +78,7 @@ test('verified users can update a user without changing password', function () {
         ->put(route('users.update', $target), [
             'name' => 'Updated Without Password',
             'email' => 'updated.without.password@example.com',
-            'role' => 'Super Admin',
+            'role' => 'User',
             'password' => '',
             'password_confirmation' => '',
         ])
@@ -87,9 +90,9 @@ test('verified users can update a user without changing password', function () {
         ->and($target->fresh()->password)->toBe($originalPasswordHash);
 });
 
-test('verified users can delete another user', function () {
-    $user = User::factory()->create();
-    $target = User::factory()->create();
+test('admins can delete another user', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
+    $target = User::factory()->create(['role' => 'User']);
 
     $this->actingAs($user)
         ->delete(route('users.destroy', $target))
@@ -101,8 +104,8 @@ test('verified users can delete another user', function () {
     ]);
 });
 
-test('verified users cannot delete their own active account from user management', function () {
-    $user = User::factory()->create();
+test('admins cannot delete their own active account from user management', function () {
+    $user = User::factory()->create(['role' => 'Admin']);
 
     $this->actingAs($user)
         ->delete(route('users.destroy', $user))
@@ -112,4 +115,54 @@ test('verified users cannot delete their own active account from user management
     $this->assertDatabaseHas('users', [
         'id' => $user->id,
     ]);
+});
+
+test('admins cannot edit super admin accounts', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $superAdmin = User::factory()->create(['role' => 'Super Admin']);
+
+    $this->actingAs($admin)
+        ->get(route('users.edit', $superAdmin))
+        ->assertRedirect(route('users.index'))
+        ->assertSessionHas('notify.type', 'error');
+
+    $this->actingAs($admin)
+        ->put(route('users.update', $superAdmin), [
+            'name' => 'Blocked Update',
+            'email' => 'blocked.update@example.com',
+            'role' => 'Super Admin',
+            'password' => '',
+            'password_confirmation' => '',
+        ])
+        ->assertRedirect(route('users.index'))
+        ->assertSessionHas('notify.type', 'error');
+
+    expect($superAdmin->fresh()->name)->not->toBe('Blocked Update')
+        ->and($superAdmin->fresh()->email)->not->toBe('blocked.update@example.com');
+});
+
+test('admins cannot delete super admin accounts', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $superAdmin = User::factory()->create(['role' => 'Super Admin']);
+
+    $this->actingAs($admin)
+        ->delete(route('users.destroy', $superAdmin))
+        ->assertRedirect()
+        ->assertSessionHas('notify.type', 'error');
+
+    $this->assertDatabaseHas('users', [
+        'id' => $superAdmin->id,
+    ]);
+});
+
+test('database prevents deleting super admin users (postgres)', function () {
+    if (DB::getDriverName() !== 'pgsql') {
+        $this->markTestSkipped('Postgres-only trigger test.');
+    }
+
+    $superAdmin = User::factory()->create(['role' => 'Super Admin']);
+
+    $this->expectException(QueryException::class);
+
+    $superAdmin->delete();
 });

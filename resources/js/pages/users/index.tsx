@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { EllipsisVertical } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
@@ -90,6 +90,8 @@ export default function UsersIndex({
     filters,
     roleOptions = [],
 }: UsersPageProps) {
+    const { auth } = usePage().props;
+    const canManageUsers = ['Super Admin', 'Admin'].includes(auth.user?.role ?? '');
     const [search, setSearch] = useState(filters.search ?? '');
     const [selectedRole, setSelectedRole] = useState(filters.role ?? '');
     const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
@@ -142,12 +144,14 @@ export default function UsersIndex({
                                     {users.total} {users.total === 1 ? 'user' : 'users'} found
                                 </p>
                             </div>
-                            <Link
-                                href="/users/create"
-                                className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
-                            >
-                                Add New User
-                            </Link>
+                            {canManageUsers && (
+                                <Link
+                                    href="/users/create"
+                                    className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
+                                >
+                                    Add New User
+                                </Link>
+                            )}
                         </div>
 
                         <div className="rounded-box border border-black/10 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/70">
@@ -231,9 +235,11 @@ export default function UsersIndex({
                                                 <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
                                                     Created
                                                 </th>
-                                                <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
-                                                    Actions
-                                                </th>
+                                                {canManageUsers && (
+                                                    <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
+                                                        Actions
+                                                    </th>
+                                                )}
                                             </tr>
                                         </thead>
 
@@ -241,14 +247,21 @@ export default function UsersIndex({
                                             {users.data.length === 0 ? (
                                                 <tr>
                                                     <td
-                                                        colSpan={5}
+                                                        colSpan={canManageUsers ? 5 : 4}
                                                         className="px-3 py-4 text-center text-neutral-900 dark:text-neutral-100"
                                                     >
                                                         No users found.
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                users.data.map((user) => (
+                                                users.data.map((user) => {
+                                                    const canEditUser =
+                                                        canManageUsers &&
+                                                        (auth.user?.role === 'Super Admin' ||
+                                                            user.role !== 'Super Admin');
+                                                    const canDeleteUser = canEditUser;
+
+                                                    return (
                                                     <tr key={user.id}>
                                                         <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                             {user.name}
@@ -262,37 +275,46 @@ export default function UsersIndex({
                                                         <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                             {formatDate(user.created_at)}
                                                         </td>
-                                                        <td className="whitespace-nowrap px-3 py-2">
-                                                            <DropdownMenu>
-                                                                <DropdownMenuTrigger asChild>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        className="h-8 w-8 p-0"
-                                                                    >
-                                                                        <EllipsisVertical className="size-4" />
-                                                                    </Button>
-                                                                </DropdownMenuTrigger>
-                                                                <DropdownMenuContent side="bottom" align="end" className="w-40">
-                                                                    <DropdownMenuItem asChild>
-                                                                        <Link href={`/users/${user.id}/edit`}>Edit</Link>
-                                                                    </DropdownMenuItem>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuItem
-                                                                        variant="destructive"
-                                                                        onSelect={(event) => {
-                                                                            event.preventDefault();
-                                                                            setDeletingUser(user);
-                                                                        }}
-                                                                    >
-                                                                        Delete
-                                                                    </DropdownMenuItem>
-                                                                </DropdownMenuContent>
-                                                            </DropdownMenu>
-                                                        </td>
+                                                        {canManageUsers && (
+                                                            <td className="whitespace-nowrap px-3 py-2">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button
+                                                                            type="button"
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            className="h-8 w-8 p-0"
+                                                                        >
+                                                                            <EllipsisVertical className="size-4" />
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent side="bottom" align="end" className="w-40">
+                                                                        {canEditUser && (
+                                                                            <DropdownMenuItem asChild>
+                                                                                <Link href={`/users/${user.id}/edit`}>Edit</Link>
+                                                                            </DropdownMenuItem>
+                                                                        )}
+                                                                        {canDeleteUser && (
+                                                                            <>
+                                                                                <DropdownMenuSeparator />
+                                                                                <DropdownMenuItem
+                                                                                    variant="destructive"
+                                                                                    onSelect={(event) => {
+                                                                                        event.preventDefault();
+                                                                                        setDeletingUser(user);
+                                                                                    }}
+                                                                                >
+                                                                                    Delete
+                                                                                </DropdownMenuItem>
+                                                                            </>
+                                                                        )}
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </td>
+                                                        )}
                                                     </tr>
-                                                ))
+                                                    );
+                                                })
                                             )}
                                         </tbody>
                                     </table>
