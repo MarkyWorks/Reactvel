@@ -13,6 +13,42 @@ use Inertia\Response;
 
 class UserController extends Controller
 {
+    private function canManageUsers(?User $user): bool
+    {
+        return in_array($user?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin], true);
+    }
+
+    private function denyIfCannotManage(Request $request): ?RedirectResponse
+    {
+        if ($this->canManageUsers($request->user())) {
+            return null;
+        }
+
+        return redirect()
+            ->route('users.index')
+            ->with('notify', [
+                'type' => 'error',
+                'message' => 'You are not authorized to manage users.',
+            ]);
+    }
+
+    private function denyIfAdminEditingSuperAdmin(Request $request, User $user): ?RedirectResponse
+    {
+        if (
+            $request->user()?->role === UserRoleEnum::Admin
+            && $user->role === UserRoleEnum::SuperAdmin
+        ) {
+            return redirect()
+                ->route('users.index')
+                ->with('notify', [
+                    'type' => 'error',
+                    'message' => 'Admins cannot edit Super Admin accounts.',
+                ]);
+        }
+
+        return null;
+    }
+
     public function index(Request $request): Response
     {
         $search = (string) $request->string('search')->trim();
@@ -69,6 +105,10 @@ class UserController extends Controller
 
     public function update(UpdateRequest $request, User $user): RedirectResponse
     {
+        if ($response = $this->denyIfAdminEditingSuperAdmin($request, $user)) {
+            return $response;
+        }
+
         $user->update($request->validated());
 
         return redirect()
@@ -81,6 +121,20 @@ class UserController extends Controller
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
+        if ($response = $this->denyIfCannotManage($request)) {
+            return $response;
+        }
+
+        if (
+            $request->user()?->role === UserRoleEnum::Admin
+            && $user->role === UserRoleEnum::SuperAdmin
+        ) {
+            return back()->with('notify', [
+                'type' => 'error',
+                'message' => 'Admins cannot delete Super Admin accounts.',
+            ]);
+        }
+
         if ($request->user()?->is($user)) {
             return back()->with('notify', [
                 'type' => 'error',
@@ -96,8 +150,12 @@ class UserController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        if ($response = $this->denyIfCannotManage($request)) {
+            return $response;
+        }
+
         return Inertia::render('users/create', [
             'roleOptions' => array_map(
                 fn (UserRoleEnum $roleOption) => $roleOption->value,
@@ -106,8 +164,16 @@ class UserController extends Controller
         ]);
     }
 
-    public function edit(User $user): Response
+    public function edit(Request $request, User $user): Response|RedirectResponse
     {
+        if ($response = $this->denyIfCannotManage($request)) {
+            return $response;
+        }
+
+        if ($response = $this->denyIfAdminEditingSuperAdmin($request, $user)) {
+            return $response;
+        }
+
         return Inertia::render('users/edit', [
             'user' => [
                 'id' => $user->id,

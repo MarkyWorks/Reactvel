@@ -1,4 +1,4 @@
-import { Form } from '@inertiajs/react';
+import { Form, usePage } from '@inertiajs/react';
 import { useRef } from 'react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/heading';
@@ -17,7 +17,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function DeleteUser() {
+    const { auth } = usePage().props;
     const passwordInput = useRef<HTMLInputElement>(null);
+
+    if (auth.user?.role === 'Super Admin') {
+        return null;
+    }
 
     return (
         <div className="space-y-6">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Enums\User\UserRoleEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
@@ -47,6 +48,13 @@ class ProfileController extends Controller
     public function destroy(ProfileDeleteRequest $request): RedirectResponse
     {
         $user = $request->user();
+
+        if ($user?->role === UserRoleEnum::SuperAdmin) {
+            return back()->with('notify', [
+                'type' => 'error',
+                'message' => 'Super Admin accounts cannot be deleted.',
+            ]);
+        }
 
         Auth::logout();
 
