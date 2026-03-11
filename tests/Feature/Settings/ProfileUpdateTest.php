@@ -67,6 +67,24 @@ test('user can delete their account', function () {
     expect($user->fresh())->toBeNull();
 });
 
+test('super admin cannot delete their account', function () {
+    $user = User::factory()->create(['role' => 'Super Admin']);
+
+    $response = $this
+        ->actingAs($user)
+        ->from(route('profile.edit'))
+        ->delete(route('profile.destroy'), [
+            'password' => 'password',
+        ]);
+
+    $response
+        ->assertRedirect(route('profile.edit'))
+        ->assertSessionHas('notify.type', 'error');
+
+    expect($user->fresh())->not->toBeNull();
+    expect(auth()->check())->toBeTrue();
+});
+
 test('correct password must be provided to delete account', function () {
     $user = User::factory()->create();
 
