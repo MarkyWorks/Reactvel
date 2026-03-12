@@ -247,7 +247,7 @@ export default function UsersIndex({
                                             {users.data.length === 0 ? (
                                                 <tr>
                                                     <td
-                                                        colSpan={canManageUsers ? 5 : 4}
+                                                        colSpan={canManageUsers ? 7 : 6}
                                                         className="px-3 py-4 text-center text-neutral-900 dark:text-neutral-100"
                                                     >
                                                         No users found.

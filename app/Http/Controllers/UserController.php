@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\User\UserRoleEnum;
 use App\Http\Requests\Users\StoreRequest;
 use App\Http\Requests\Users\UpdateRequest;
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +48,20 @@ class UserController extends Controller
         }
 
         return null;
+    }
+
+    private function logAudit(Request $request, string $action, ?User $target = null): void
+    {
+        $description = $target
+            ? "User {$target->name} ({$target->email})"
+            : null;
+
+        AuditLog::create([
+            'user_id' => $request->user()?->id,
+            'action' => $action,
+            'description' => $description,
+            'ip_address' => $request->ip(),
+        ]);
     }
 
     public function index(Request $request): Response
@@ -93,7 +108,9 @@ class UserController extends Controller
 
     public function store(StoreRequest $request): RedirectResponse
     {
-        User::create($request->validated());
+        $user = User::create($request->validated());
+
+        $this->logAudit($request, 'Create User', $user);
 
         return redirect()
             ->route('users.index')
@@ -110,6 +127,8 @@ class UserController extends Controller
         }
 
         $user->update($request->validated());
+
+        $this->logAudit($request, 'Update User', $user);
 
         return redirect()
             ->route('users.index')
@@ -143,6 +162,8 @@ class UserController extends Controller
         }
 
         $user->delete();
+
+        $this->logAudit($request, 'Delete User', $user);
 
         return back()->with('notify', [
             'type' => 'success',
