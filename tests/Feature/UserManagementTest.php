@@ -44,6 +44,11 @@ test('admins can create a user', function () {
         'name' => 'Executive One',
         'email' => 'executive.one@example.com',
     ]);
+
+    $this->assertDatabaseHas('audit_logs', [
+        'user_id' => $user->id,
+        'action' => 'Create User',
+    ]);
 });
 
 test('admins can update a user', function () {

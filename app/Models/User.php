@@ -6,6 +6,7 @@ namespace App\Models;
 use App\Enums\User\UserRoleEnum;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -13,7 +14,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, HasUuids ,Notifiable, TwoFactorAuthenticatable;
+    use HasFactory, HasUuids, Notifiable, TwoFactorAuthenticatable;
 
     /**
      * The attributes that are mass assignable.
@@ -48,9 +49,46 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_seen_at' => 'datetime',
+            'last_logged_out_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRoleEnum::class,
             'two_factor_confirmed_at' => 'datetime',
         ];
+    }
+
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AuditLog::class);
+    }
+
+    public function getStatusAttribute(): string
+    {
+        $lastSeenAt = $this->last_seen_at;
+        $lastLoggedOutAt = $this->last_logged_out_at;
+
+        if (! $lastSeenAt) {
+            return 'offline';
+        }
+
+        if ($lastLoggedOutAt && $lastLoggedOutAt->greaterThanOrEqualTo($lastSeenAt)) {
+            return 'offline';
+        }
+
+        $diffInSeconds = $lastSeenAt->diffInSeconds(now());
+
+        if ($diffInSeconds < 60) {
+            return 'online';
+        }
+
+        if ($diffInSeconds < 300) {
+            return 'active';
+        }
+
+        if ($diffInSeconds < 1800) {
+            return 'inactive';
+        }
+
+        return 'offline';
     }
 }
