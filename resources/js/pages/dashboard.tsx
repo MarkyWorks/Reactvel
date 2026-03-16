@@ -260,7 +260,7 @@ export default function Dashboard({
                                             <span className="font-semibold text-neutral-900 dark:text-white">
                                                 {user.name}
                                             </span>
-                                            <span>{user.role ?? 'User'}</span>
+                                            <span>{user.role ?? 'Students'}</span>
                                             <span>{formatDateTime(user.created_at)}</span>
                                             <span className="text-xs text-neutral-500 dark:text-neutral-400">
                                                 {user.email}

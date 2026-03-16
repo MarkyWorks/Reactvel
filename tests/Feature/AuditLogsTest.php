@@ -44,7 +44,8 @@ test('admins can view audit logs with activity statuses', function () {
 
     expect($users->firstWhere('id', $inactiveUser->id)['status'])->toBe('inactive')
         ->and($users->firstWhere('id', $offlineUser->id)['status'])->toBe('offline')
-        ->and($users->firstWhere('id', $offlineUser->id)['last_active_label'])->not->toBeNull();
+        ->and($users->firstWhere('id', $offlineUser->id)['last_active_label'])->not->toBeNull()
+        ->and($users->firstWhere('id', $admin->id)['role'])->toBe('Admin');
 
     Carbon::setTestNow();
 });
@@ -87,7 +88,8 @@ test('audit logs supports search and status filters', function () {
     expect($users)->toHaveCount(1)
         ->and($users->first()['id'])->toBe($onlineUser->id)
         ->and($logs)->toHaveCount(1)
-        ->and($logs->first()['user'])->toBe('Admin User');
+        ->and($logs->first()['user'])->toBe('Admin User')
+        ->and($logs->first()['role'])->toBe('Students');
 
     Carbon::setTestNow();
 });

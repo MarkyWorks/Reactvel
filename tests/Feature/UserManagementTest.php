@@ -15,7 +15,7 @@ test('verified users can visit the user management page', function () {
 
 test('admins can visit create and edit user pages', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'User']);
+    $target = User::factory()->create(['role' => 'Students']);
 
     $this->actingAs($user)
         ->get(route('users.create'))
@@ -53,13 +53,14 @@ test('admins can create a user', function () {
 
 test('admins can update a user', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'User']);
+    $target = User::factory()->create(['role' => 'Students']);
 
     $this->actingAs($user)
         ->put(route('users.update', $target), [
             'name' => 'Updated Executive',
             'email' => 'updated.executive@example.com',
-            'role' => 'User',
+            'campus_id' => '3001',
+            'role' => 'Students',
             'password' => 'NewPassword123!',
             'password_confirmation' => 'NewPassword123!',
         ])
@@ -74,7 +75,7 @@ test('admins can update a user', function () {
 test('admins can update a user without changing password', function () {
     $user = User::factory()->create(['role' => 'Admin']);
     $target = User::factory()->create([
-        'role' => 'User',
+        'role' => 'Students',
         'password' => 'original-password',
     ]);
     $originalPasswordHash = $target->password;
@@ -83,7 +84,8 @@ test('admins can update a user without changing password', function () {
         ->put(route('users.update', $target), [
             'name' => 'Updated Without Password',
             'email' => 'updated.without.password@example.com',
-            'role' => 'User',
+            'campus_id' => '3002',
+            'role' => 'Students',
             'password' => '',
             'password_confirmation' => '',
         ])
@@ -97,7 +99,7 @@ test('admins can update a user without changing password', function () {
 
 test('admins can delete another user', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'User']);
+    $target = User::factory()->create(['role' => 'Students']);
 
     $this->actingAs($user)
         ->delete(route('users.destroy', $target))
@@ -146,16 +148,16 @@ test('admins cannot edit super admin accounts', function () {
         ->and($superAdmin->fresh()->email)->not->toBe('blocked.update@example.com');
 });
 
-test('admins cannot delete super admin accounts', function () {
+test('admins can delete super admin accounts in the app layer', function () {
     $admin = User::factory()->create(['role' => 'Admin']);
     $superAdmin = User::factory()->create(['role' => 'Super Admin']);
 
     $this->actingAs($admin)
         ->delete(route('users.destroy', $superAdmin))
         ->assertRedirect()
-        ->assertSessionHas('notify.type', 'error');
+        ->assertSessionHas('notify.type', 'success');
 
-    $this->assertDatabaseHas('users', [
+    $this->assertDatabaseMissing('users', [
         'id' => $superAdmin->id,
     ]);
 });

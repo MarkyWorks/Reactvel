@@ -28,7 +28,7 @@ class UpdateRequest extends FormRequest
         $userId = $this->route('user')?->id;
 
         return [
-             'name' => [
+            'name' => [
                 'required',
                 'string',
                 'max:255',
@@ -41,6 +41,14 @@ class UpdateRequest extends FormRequest
                 'max:255',
                 'lowercase',
                 Rule::unique('users', 'email')->ignore($userId),
+            ],
+            'campus_id' => [
+                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Students->value], true)),
+                'nullable',
+                'string',
+                'max:255',
+                'regex:/^\\d+$/',
+                Rule::unique('users', 'campus_id')->ignore($userId),
             ],
             'role' => ['required', Rule::in(array_map(fn (UserRoleEnum $role) => $role->value, UserRoleEnum::cases()))],
             'password' => [

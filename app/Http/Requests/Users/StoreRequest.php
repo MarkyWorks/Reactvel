@@ -26,8 +26,16 @@ class StoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255','unique:users,name'],
+            'name' => ['required', 'string', 'max:255', 'unique:users,name'],
             'email' => ['required', 'string', 'email', 'max:255', 'lowercase', 'unique:users,email'],
+            'campus_id' => [
+                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Students->value], true)),
+                'nullable',
+                'string',
+                'max:255',
+                'regex:/^\\d+$/',
+                'unique:users,campus_id',
+            ],
             'role' => ['required', Rule::in(array_map(fn (UserRoleEnum $role) => $role->value, UserRoleEnum::cases()))],
             'password' => [
                 'required',
@@ -40,10 +48,13 @@ class StoreRequest extends FormRequest
             ],
         ];
     }
+
     public function messages(): array
     {
         return [
             'password.mixed_case' => 'Password must contain both uppercase and lowercase letters.',
+            'campus_id.required' => 'Campus ID is required for Faculty and Students.',
+            'campus_id.regex' => 'Campus ID must contain numbers only.',
         ];
     }
 }

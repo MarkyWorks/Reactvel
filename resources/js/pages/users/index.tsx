@@ -26,6 +26,7 @@ type UserRow = {
     id: number;
     name: string;
     email: string;
+    campus_id: string | null;
     role?: string | null;
     created_at: string | null;
 };
@@ -170,7 +171,7 @@ export default function UsersIndex({
                                             type="search"
                                             value={search}
                                             onChange={(event) => setSearch(event.target.value)}
-                                            placeholder="Search by id , name or email"
+                                            placeholder="Search by id, name, email, or campus ID"
                                             className="mt-2 w-full rounded-box border border-black/10 bg-white p-2 text-sm text-neutral-800 shadow-none transition-colors duration-200 focus:border-black/15 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 dark:border-white/15 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-white/20 dark:focus:ring-neutral-100/15"
                                         />
                                     </div>
@@ -224,6 +225,9 @@ export default function UsersIndex({
                                         <thead className="ltr:text-left rtl:text-right">
                                             <tr className="text-left text-sm font-medium">
                                                 <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
+                                                    Campus ID
+                                                </th>
+                                                <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
                                                     Name
                                                 </th>
                                                 <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
@@ -247,7 +251,7 @@ export default function UsersIndex({
                                             {users.data.length === 0 ? (
                                                 <tr>
                                                     <td
-                                                        colSpan={canManageUsers ? 7 : 6}
+                                                        colSpan={canManageUsers ? 8 : 7}
                                                         className="px-3 py-4 text-center text-neutral-900 dark:text-neutral-100"
                                                     >
                                                         No users found.
@@ -263,6 +267,9 @@ export default function UsersIndex({
 
                                                     return (
                                                     <tr key={user.id}>
+                                                        <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
+                                                            {user.campus_id ?? '-'}
+                                                        </td>
                                                         <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                             {user.name}
                                                         </td>
