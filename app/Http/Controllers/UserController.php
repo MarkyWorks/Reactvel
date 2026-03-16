@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\User\UserRoleEnum;
+use App\Events\AuditLogCreated;
 use App\Http\Requests\Users\StoreRequest;
 use App\Http\Requests\Users\UpdateRequest;
 use App\Models\AuditLog;
@@ -56,12 +57,14 @@ class UserController extends Controller
             ? "User {$target->name} ({$target->email})"
             : null;
 
-        AuditLog::create([
+        $auditLog = AuditLog::create([
             'user_id' => $request->user()?->id,
             'action' => $action,
             'description' => $description,
             'ip_address' => $request->ip(),
         ]);
+
+        event(new AuditLogCreated($auditLog->id));
     }
 
     public function index(Request $request): Response

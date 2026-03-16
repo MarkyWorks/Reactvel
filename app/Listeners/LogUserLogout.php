@@ -2,6 +2,8 @@
 
 namespace App\Listeners;
 
+use App\Events\AuditLogCreated;
+use App\Events\UserActivityUpdated;
 use App\Models\AuditLog;
 use Illuminate\Auth\Events\Logout;
 
@@ -19,6 +21,8 @@ class LogUserLogout
                 'last_logged_out_at' => now(),
             ])->save();
 
+            event(new UserActivityUpdated($userId));
+
             $latestLog = AuditLog::query()
                 ->where('user_id', $userId)
                 ->where('action', 'Logout')
@@ -30,11 +34,13 @@ class LogUserLogout
             }
         }
 
-        AuditLog::create([
+        $auditLog = AuditLog::create([
             'user_id' => $userId,
             'action' => 'Logout',
             'description' => 'User logged out.',
             'ip_address' => request()->ip(),
         ]);
+
+        event(new AuditLogCreated($auditLog->id));
     }
 }

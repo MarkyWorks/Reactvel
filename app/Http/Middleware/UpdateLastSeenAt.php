@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Events\UserActivityUpdated;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +27,8 @@ class UpdateLastSeenAt
                 $user->forceFill([
                     'last_seen_at' => $now,
                 ])->save();
+
+                event(new UserActivityUpdated($user->id));
             }
         }
 

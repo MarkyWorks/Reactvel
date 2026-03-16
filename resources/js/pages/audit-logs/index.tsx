@@ -1,7 +1,8 @@
 import { Head, Link, router } from '@inertiajs/react';
+import { useEcho } from '@laravel/echo-react';
 import { Activity, ClipboardList } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -111,16 +112,17 @@ export default function AuditLogsIndex({
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
 
-    useEffect(() => {
-        const interval = window.setInterval(() => {
+    useEcho(
+        'audit-logs',
+        ['.AuditLogCreated', '.UserActivityUpdated'],
+        () => {
             router.reload({
                 only: ['users', 'logs'],
                 preserveScroll: true,
             });
-        }, 10000);
-
-        return () => window.clearInterval(interval);
-    }, []);
+        },
+        [],
+    );
 
     const submitSearch = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -235,7 +237,7 @@ export default function AuditLogsIndex({
                                         </div>
                                     </div>
                                     <div className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
-                                        Live updates every 10s
+                                        Live updates in real time
                                     </div>
                                 </div>
 

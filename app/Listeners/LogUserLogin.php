@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Events\AuditLogCreated;
 use App\Models\AuditLog;
 use Illuminate\Auth\Events\Login;
 
@@ -26,11 +27,13 @@ class LogUserLogin
             }
         }
 
-        AuditLog::create([
+        $auditLog = AuditLog::create([
             'user_id' => $userId,
             'action' => 'Login',
             'description' => 'User logged in.',
             'ip_address' => request()->ip(),
         ]);
+
+        event(new AuditLogCreated($auditLog->id));
     }
 }

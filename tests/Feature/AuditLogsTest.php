@@ -1,5 +1,7 @@
 <?php
 
+use App\Events\AuditLogCreated;
+use App\Events\UserActivityUpdated;
 use App\Listeners\LogUserLogin;
 use App\Listeners\LogUserLogout;
 use App\Models\AuditLog;
@@ -7,6 +9,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Inertia\Testing\AssertableInertia;
 
 test('admins can view audit logs with activity statuses', function () {
@@ -92,6 +95,8 @@ test('audit logs supports search and status filters', function () {
 test('login audit logs do not duplicate within a short window', function () {
     Carbon::setTestNow(Carbon::parse('2026-03-11 12:00:00'));
 
+    Event::fake([AuditLogCreated::class]);
+
     $user = User::factory()->create();
     $listener = new LogUserLogin;
     $event = new Login('web', $user, false);
@@ -101,6 +106,8 @@ test('login audit logs do not duplicate within a short window', function () {
 
     expect(AuditLog::query()->where('user_id', $user->id)->where('action', 'Login')->count())
         ->toBe(1);
+
+    Event::assertDispatchedTimes(AuditLogCreated::class, 1);
 
     Carbon::setTestNow();
 });
@@ -127,6 +134,8 @@ test('offline users use logged out timestamp for last activity', function () {
 });
 
 test('logout marks user status as offline', function () {
+    Event::fake([AuditLogCreated::class, UserActivityUpdated::class]);
+
     $user = User::factory()->create([
         'last_seen_at' => now(),
     ]);
@@ -137,4 +146,7 @@ test('logout marks user status as offline', function () {
     $listener->handle($event);
 
     expect($user->fresh()->last_logged_out_at)->not->toBeNull();
+
+    Event::assertDispatched(UserActivityUpdated::class);
+    Event::assertDispatched(AuditLogCreated::class);
 });
