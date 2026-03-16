@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Mark Cleo Calbang',
                 'email' => 'markcleocalbang05@gmail.com',
-                'role' => UserRoleEnum::Students->value,
+                'role' => UserRoleEnum::Student->value,
                 'campus_id' => '8220905',
                 'password' => 'M@rky123',
             ],

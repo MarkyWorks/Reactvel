@@ -29,7 +29,7 @@ class StoreRequest extends FormRequest
             'name' => ['required', 'string', 'max:255', 'unique:users,name'],
             'email' => ['required', 'string', 'email', 'max:255', 'lowercase', 'unique:users,email'],
             'campus_id' => [
-                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Students->value], true)),
+                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Student->value], true)),
                 'nullable',
                 'string',
                 'max:255',
@@ -53,7 +53,7 @@ class StoreRequest extends FormRequest
     {
         return [
             'password.mixed_case' => 'Password must contain both uppercase and lowercase letters.',
-            'campus_id.required' => 'Campus ID is required for Faculty and Students.',
+            'campus_id.required' => 'Campus ID is required for Faculty and Student.',
             'campus_id.regex' => 'Campus ID must contain numbers only.',
         ];
     }

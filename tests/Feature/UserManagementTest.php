@@ -15,7 +15,7 @@ test('verified users can visit the user management page', function () {
 
 test('admins can visit create and edit user pages', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'Students']);
+    $target = User::factory()->create(['role' => 'Student']);
 
     $this->actingAs($user)
         ->get(route('users.create'))
@@ -53,14 +53,14 @@ test('admins can create a user', function () {
 
 test('admins can update a user', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'Students']);
+    $target = User::factory()->create(['role' => 'Student']);
 
     $this->actingAs($user)
         ->put(route('users.update', $target), [
             'name' => 'Updated Executive',
             'email' => 'updated.executive@example.com',
             'campus_id' => '3001',
-            'role' => 'Students',
+            'role' => 'Student',
             'password' => 'NewPassword123!',
             'password_confirmation' => 'NewPassword123!',
         ])
@@ -75,7 +75,7 @@ test('admins can update a user', function () {
 test('admins can update a user without changing password', function () {
     $user = User::factory()->create(['role' => 'Admin']);
     $target = User::factory()->create([
-        'role' => 'Students',
+        'role' => 'Student',
         'password' => 'original-password',
     ]);
     $originalPasswordHash = $target->password;
@@ -85,7 +85,7 @@ test('admins can update a user without changing password', function () {
             'name' => 'Updated Without Password',
             'email' => 'updated.without.password@example.com',
             'campus_id' => '3002',
-            'role' => 'Students',
+            'role' => 'Student',
             'password' => '',
             'password_confirmation' => '',
         ])
@@ -99,7 +99,7 @@ test('admins can update a user without changing password', function () {
 
 test('admins can delete another user', function () {
     $user = User::factory()->create(['role' => 'Admin']);
-    $target = User::factory()->create(['role' => 'Students']);
+    $target = User::factory()->create(['role' => 'Student']);
 
     $this->actingAs($user)
         ->delete(route('users.destroy', $target))

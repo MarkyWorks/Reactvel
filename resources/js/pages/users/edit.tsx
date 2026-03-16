@@ -38,7 +38,7 @@ export default function EditUser({ user, roleOptions }: EditUserProps) {
         password_confirmation: '',
     });
 
-    const isCampusIdRequired = ['Faculty', 'Students'].includes(form.data.role);
+    const isCampusIdRequired = ['Faculty', 'Student'].includes(form.data.role);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -173,7 +173,7 @@ export default function EditUser({ user, roleOptions }: EditUserProps) {
                                             />
                                         </div>
                                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                            Required for Faculty and Students. Numbers only. Locked after creation.
+                                            Required for Faculty and Student. Numbers only. Locked after creation.
                                         </p>
                                         <InputError message={form.errors.campus_id} />
                                     </div>
