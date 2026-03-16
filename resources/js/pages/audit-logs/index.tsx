@@ -2,7 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { Activity, ClipboardList } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -82,6 +82,55 @@ const formatDateTime = (value: string | null) => {
     }).format(parsedDate);
 };
 
+const formatRelativeTime = (value: string | null, nowMs: number) => {
+    if (!value) {
+        return null;
+    }
+
+    const isoValue = value.includes('T') ? value : value.replace(' ', 'T');
+    const parsedDate = new Date(isoValue);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return value;
+    }
+
+    const diffSeconds = Math.max(0, Math.floor((nowMs - parsedDate.getTime()) / 1000));
+
+    if (diffSeconds < 60) {
+        return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+
+    if (diffMinutes < 60) {
+        return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+        return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    }
+
+    const diffDays = Math.floor(diffHours / 24);
+
+    return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+};
+
+const useNow = (intervalMs: number) => {
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            setNow(Date.now());
+        }, intervalMs);
+
+        return () => window.clearInterval(interval);
+    }, [intervalMs]);
+
+    return now;
+};
+
 const statusStyles: Record<UserActivityRow['status'], string> = {
     online: 'bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200',
     active: 'bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200',
@@ -111,6 +160,7 @@ export default function AuditLogsIndex({
 }: AuditLogsPageProps) {
     const [search, setSearch] = useState(filters.search ?? '');
     const [status, setStatus] = useState(filters.status ?? '');
+    const nowMs = useNow(1000);
 
     useEcho(
         'audit-logs',
@@ -289,8 +339,17 @@ export default function AuditLogsIndex({
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                                 <div className="font-medium">
-                                                                    {user.status === 'offline' && user.last_active_label
-                                                                        ? `${statusLabels.offline} ${user.last_active_label}`
+                                                                    {user.status === 'offline'
+                                                                        ? (() => {
+                                                                              const relativeTime = formatRelativeTime(
+                                                                                  user.last_active_at,
+                                                                                  nowMs,
+                                                                              );
+
+                                                                              return relativeTime
+                                                                                  ? `${statusLabels.offline} ${relativeTime}`
+                                                                                  : '-';
+                                                                          })()
                                                                         : '-'}
                                                                 </div>
                                                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
