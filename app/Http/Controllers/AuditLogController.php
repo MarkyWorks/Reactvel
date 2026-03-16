@@ -106,7 +106,7 @@ class AuditLogController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->role ?? null,
+                    'role' => $user->role?->value ?? null,
                     'status' => $user->status,
                     'last_active_at' => $lastActivityAt?->toDateTimeString(),
                     'last_active_label' => $lastActivityAt?->diffForHumans(),
@@ -115,7 +115,7 @@ class AuditLogController extends Controller
             ->withQueryString();
 
         $logs = AuditLog::query()
-            ->with('user:id,name,email,last_seen_at,last_logged_out_at')
+            ->with('user:id,name,email,role,last_seen_at,last_logged_out_at')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($builder) use ($search) {
                     $builder->where('id', 'like', "%{$search}%")
@@ -137,6 +137,7 @@ class AuditLogController extends Controller
             ->through(fn (AuditLog $log) => [
                 'id' => $log->id,
                 'user' => $log->user?->name ?? 'System',
+                'role' => $log->user?->role?->value ?? null,
                 'action' => $log->action,
                 'description' => $log->description,
                 'ip_address' => $log->ip_address,

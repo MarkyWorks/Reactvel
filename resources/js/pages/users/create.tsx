@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Lock, Mail, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { Hash, Lock, Mail, ShieldCheck, User, UserPlus } from 'lucide-react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -25,10 +25,13 @@ export default function CreateUser({ roleOptions }: CreateUserProps) {
     const form = useForm({
         name: '',
         email: '',
+        campus_id: '',
         role: '',
         password: '',
         password_confirmation: '',
     });
+
+    const isCampusIdRequired = ['Faculty', 'Students'].includes(form.data.role);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -135,6 +138,34 @@ export default function CreateUser({ roleOptions }: CreateUserProps) {
                                             ))}
                                         </select>
                                         <InputError message={form.errors.role} />
+                                    </div>
+
+                                    <div className="grid gap-2 sm:col-span-2">
+                                        <label
+                                            htmlFor="campus_id"
+                                            className="text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                                        >
+                                            Campus ID
+                                        </label>
+                                        <div className="relative">
+                                            <Hash className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
+                                            <input
+                                                id="campus_id"
+                                                name="campus_id"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                placeholder="1024"
+                                                value={form.data.campus_id}
+                                                onChange={(event) => form.setData('campus_id', event.target.value)}
+                                                className="w-full rounded-field border border-black/10 bg-white/90 py-2.5 pl-9 pr-3 text-sm text-neutral-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 dark:border-white/20 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/20"
+                                                required={isCampusIdRequired}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                            Required for Faculty and Students. Numbers only.
+                                        </p>
+                                        <InputError message={form.errors.campus_id} />
                                     </div>
 
                                     <div className="grid gap-2 sm:col-span-2">

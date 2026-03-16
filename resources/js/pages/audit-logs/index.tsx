@@ -27,6 +27,7 @@ type UserActivityRow = {
 type AuditLogRow = {
     id: number;
     user: string;
+    role?: string | null;
     action: string;
     description: string | null;
     ip_address: string | null;
@@ -300,6 +301,9 @@ export default function AuditLogsIndex({
                                                         User
                                                     </th>
                                                     <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
+                                                        Role
+                                                    </th>
+                                                    <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
                                                         Status
                                                     </th>
                                                     <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
@@ -311,7 +315,7 @@ export default function AuditLogsIndex({
                                                 {users.data.length === 0 ? (
                                                     <tr>
                                                         <td
-                                                            colSpan={3}
+                                                            colSpan={4}
                                                             className="px-3 py-4 text-center text-neutral-900 dark:text-neutral-100"
                                                         >
                                                             No users found.
@@ -325,6 +329,9 @@ export default function AuditLogsIndex({
                                                                 <div className="text-xs text-neutral-500 dark:text-neutral-400">
                                                                     {user.email}
                                                                 </div>
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
+                                                                {user.role ?? '-'}
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-2">
                                                                 <span
@@ -413,6 +420,9 @@ export default function AuditLogsIndex({
                                                         User
                                                     </th>
                                                     <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
+                                                        Role
+                                                    </th>
+                                                    <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
                                                         Action
                                                     </th>
                                                     <th className="whitespace-nowrap px-3 py-2 text-neutral-700 dark:text-neutral-200">
@@ -430,7 +440,7 @@ export default function AuditLogsIndex({
                                                 {logs.data.length === 0 ? (
                                                     <tr>
                                                         <td
-                                                            colSpan={5}
+                                                            colSpan={6}
                                                             className="px-3 py-4 text-center text-neutral-900 dark:text-neutral-100"
                                                         >
                                                             No audit entries yet.
@@ -441,6 +451,9 @@ export default function AuditLogsIndex({
                                                         <tr key={log.id}>
                                                             <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                                 {log.user}
+                                                            </td>
+                                                            <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
+                                                                {log.role ?? '-'}
                                                             </td>
                                                             <td className="whitespace-nowrap px-3 py-2 text-neutral-900 dark:text-neutral-100">
                                                                 {log.action}

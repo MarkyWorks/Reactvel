@@ -19,19 +19,29 @@ class UserSeeder extends Seeder
                 'name' => 'Super Admin',
                 'email' => 'superadmin@example.com',
                 'role' => UserRoleEnum::SuperAdmin->value,
+                'campus_id' => '1002',
                 'password' => 'superadmin123',
             ],
             [
                 'name' => 'Admin User',
                 'email' => 'admin@example.com',
                 'role' => UserRoleEnum::Admin->value,
+                'campus_id' => '1003',
                 'password' => 'admin123',
             ],
             [
-                'name' => 'Regular User',
-                'email' => 'user@example.com',
-                'role' => UserRoleEnum::User->value,
-                'password' => 'user123',
+                'name' => 'Faculty Member',
+                'email' => 'faculty@example.com',
+                'role' => UserRoleEnum::Faculty->value,
+                'campus_id' => '1001',
+                'password' => 'faculty123',
+            ],
+            [
+                'name' => 'Mark Cleo Calbang',
+                'email' => 'markcleocalbang05@gmail.com',
+                'role' => UserRoleEnum::Students->value,
+                'campus_id' => '8220905',
+                'password' => 'M@rky123',
             ],
         ];
 

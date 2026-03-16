@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { Lock, Mail, Pencil, ShieldCheck, User } from 'lucide-react';
+import { Hash, Lock, Mail, Pencil, ShieldCheck, User } from 'lucide-react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ type EditUserProps = {
         id: number;
         name: string;
         email: string;
+        campus_id: string | null;
         role?: string | null;
     };
     roleOptions: string[];
@@ -31,10 +32,13 @@ export default function EditUser({ user, roleOptions }: EditUserProps) {
     const form = useForm({
         name: user.name,
         email: user.email,
+        campus_id: user.campus_id ?? '',
         role: user.role ?? '',
         password: '',
         password_confirmation: '',
     });
+
+    const isCampusIdRequired = ['Faculty', 'Students'].includes(form.data.role);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -144,6 +148,34 @@ export default function EditUser({ user, roleOptions }: EditUserProps) {
                                             ))}
                                         </select>
                                         <InputError message={form.errors.role} />
+                                    </div>
+
+                                    <div className="grid gap-2 sm:col-span-2">
+                                        <label
+                                            htmlFor="campus_id"
+                                            className="text-sm font-medium text-neutral-700 dark:text-neutral-200"
+                                        >
+                                            Campus ID
+                                        </label>
+                                        <div className="relative">
+                                            <Hash className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
+                                            <input
+                                                id="campus_id"
+                                                name="campus_id"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                placeholder="1024"
+                                                value={form.data.campus_id}
+                                                readOnly
+                                                className="w-full rounded-field border border-black/10 bg-neutral-100/80 py-2.5 pl-9 pr-3 text-sm text-neutral-700 shadow-sm outline-none transition dark:border-white/20 dark:bg-neutral-800/70 dark:text-neutral-300"
+                                                required={isCampusIdRequired}
+                                            />
+                                        </div>
+                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                            Required for Faculty and Students. Numbers only. Locked after creation.
+                                        </p>
+                                        <InputError message={form.errors.campus_id} />
                                     </div>
 
                                     <div className="grid gap-2 sm:col-span-2">

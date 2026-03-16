@@ -73,13 +73,14 @@ class UserController extends Controller
         $role = (string) $request->string('role')->trim();
 
         $users = User::query()
-            ->select(['id', 'name', 'email', 'role', 'created_at'])
+            ->select(['id', 'name', 'email', 'campus_id', 'role', 'created_at'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($builder) use ($search) {
                     $builder
                         ->where('id', 'like', "%{$search}%")
                         ->orWhere('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('campus_id', 'like', "%{$search}%");
                 });
             })
             ->when($role !== '', function ($query) use ($role) {
@@ -91,6 +92,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'campus_id' => $user->campus_id,
                 'role' => $user->role ?? null,
                 'created_at' => $user->created_at?->toDateTimeString(),
             ])
@@ -147,16 +149,6 @@ class UserController extends Controller
             return $response;
         }
 
-        if (
-            $request->user()?->role === UserRoleEnum::Admin
-            && $user->role === UserRoleEnum::SuperAdmin
-        ) {
-            return back()->with('notify', [
-                'type' => 'error',
-                'message' => 'Admins cannot delete Super Admin accounts.',
-            ]);
-        }
-
         if ($request->user()?->is($user)) {
             return back()->with('notify', [
                 'type' => 'error',
@@ -203,6 +195,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'campus_id' => $user->campus_id,
                 'role' => $user->role ?? null,
             ],
             'roleOptions' => array_map(
