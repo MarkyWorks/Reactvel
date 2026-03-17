@@ -172,9 +172,6 @@ export default function EditUser({ user, roleOptions }: EditUserProps) {
                                                 required={isCampusIdRequired}
                                             />
                                         </div>
-                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                            Required for Faculty and Student. Numbers only. Locked after creation.
-                                        </p>
                                         <InputError message={form.errors.campus_id} />
                                     </div>
 
