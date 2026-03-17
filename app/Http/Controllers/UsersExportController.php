@@ -40,12 +40,17 @@ class UsersExportController extends Controller
             return $response;
         }
 
+        $user = $request->user();
+        $deliveryMethod = $user?->role === UserRoleEnum::Faculty ? 'email' : 'download';
         $requestedDate = (string) $request->string('requested_date')->trim();
 
         $exports = UserExport::query()
-            ->with('user:id,email')
+            ->with('user:id,email,role')
             ->when($requestedDate !== '', function ($query) use ($requestedDate) {
                 $query->whereDate('requested_at', $requestedDate);
+            })
+            ->when($user?->role === UserRoleEnum::Faculty, function ($query) use ($user) {
+                $query->where('user_id', $user?->id);
             })
             ->latest('requested_at')
             ->paginate(10)
@@ -63,7 +68,10 @@ class UsersExportController extends Controller
                 'status' => $export->status,
                 'error_message' => $export->error_message,
                 'status_url' => route('users.export.status', $export),
-                'download_url' => $export->status === 'finished'
+                'delivery_method' => $export->user?->role === UserRoleEnum::Faculty ? 'email' : 'download',
+                'download_url' => $deliveryMethod === 'download'
+                    && $export->status === 'finished'
+                    && $export->user_id === $user?->id
                     ? route('users.export.download', $export)
                     : null,
             ]);
@@ -116,8 +124,17 @@ class UsersExportController extends Controller
             return $response;
         }
 
+        $user = $request->user();
         $downloadUrl = null;
-        if ($userExport->status === 'finished' && $userExport->file_path && Storage::disk('local')->exists($userExport->file_path)) {
+        $deliveryMethod = $user?->role === UserRoleEnum::Faculty ? 'email' : 'download';
+
+        if (
+            $deliveryMethod === 'download'
+            && $userExport->status === 'finished'
+            && $userExport->file_path
+            && $userExport->user_id === $user?->id
+            && Storage::disk('local')->exists($userExport->file_path)
+        ) {
             $downloadUrl = route('users.export.download', $userExport);
         }
 
@@ -128,6 +145,7 @@ class UsersExportController extends Controller
             'users_exported' => $userExport->users_exported,
             'error_message' => $userExport->error_message,
             'download_url' => $downloadUrl,
+            'delivery_method' => $userExport->user?->role === UserRoleEnum::Faculty ? 'email' : 'download',
             'done' => in_array($userExport->status, ['finished', 'failed'], true),
         ]);
     }
@@ -136,6 +154,20 @@ class UsersExportController extends Controller
     {
         if ($response = $this->denyIfCannotExport($request)) {
             return $response;
+        }
+
+        if ($request->user()?->id !== $userExport->user_id) {
+            return redirect()->route('users.export.create')->with('notify', [
+                'type' => 'error',
+                'message' => 'You are not authorized to download this export.',
+            ]);
+        }
+
+        if ($request->user()?->role === UserRoleEnum::Faculty) {
+            return redirect()->route('users.export.create')->with('notify', [
+                'type' => 'error',
+                'message' => 'Your export is delivered by email.',
+            ]);
         }
 
         if ($userExport->status !== 'finished' || ! $userExport->file_path) {

@@ -30,6 +30,7 @@ type ExportRow = {
     error_message: string | null;
     status_url: string;
     download_url: string | null;
+    delivery_method: 'download' | 'email';
 };
 
 type PaginatorLink = {
@@ -155,6 +156,7 @@ export default function UsersExport({ exports, requestedDate }: UsersExportProps
                                             : currentRow.users_exported,
                                     error_message: data.error_message ?? currentRow.error_message,
                                     download_url: data.download_url ?? currentRow.download_url,
+                                    delivery_method: data.delivery_method ?? currentRow.delivery_method,
                                 };
                             }),
                         );
@@ -165,7 +167,11 @@ export default function UsersExport({ exports, requestedDate }: UsersExportProps
 
                         if (data.status === 'finished') {
                             notifiedIds.current.add(row.id);
-                            notify('success', 'User export is ready for download.');
+                            if (data.delivery_method === 'email') {
+                                notify('success', 'User export has been emailed to your account.');
+                            } else {
+                                notify('success', 'User export is ready for download.');
+                            }
                         }
 
                         if (data.status === 'failed') {
@@ -327,6 +333,11 @@ export default function UsersExport({ exports, requestedDate }: UsersExportProps
                                                                 <Download className="size-4" />
                                                                 Download
                                                             </a>
+                                                        ) : exportRow.status === 'finished' &&
+                                                          exportRow.delivery_method === 'email' ? (
+                                                            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                                Emailed
+                                                            </span>
                                                         ) : (
                                                             <span className="text-xs text-neutral-500 dark:text-neutral-400">
                                                                 {exportRow.error_message ?? 'Pending'}
