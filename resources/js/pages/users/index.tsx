@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { EllipsisVertical } from 'lucide-react';
+import { Download, EllipsisVertical, Upload, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -93,10 +93,12 @@ export default function UsersIndex({
 }: UsersPageProps) {
     const { auth } = usePage().props;
     const canManageUsers = ['Super Admin', 'Admin'].includes(auth.user?.role ?? '');
+    const canImportExport = ['Super Admin', 'Admin', 'Faculty'].includes(auth.user?.role ?? '');
     const [search, setSearch] = useState(filters.search ?? '');
     const [selectedRole, setSelectedRole] = useState(filters.role ?? '');
     const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const exportableRoles = ['Student', 'Faculty'];
 
     const submitSearch = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -131,6 +133,31 @@ export default function UsersIndex({
         });
     };
 
+    const handleExport = (format: 'csv' | 'xlsx' | 'xls') => {
+        if (selectedRole !== '' && !exportableRoles.includes(selectedRole)) {
+            window.dispatchEvent(
+                new CustomEvent('notify', {
+                    detail: {
+                        type: 'error',
+                        message: 'Please select a role to export (Student or Faculty).',
+                    },
+                }),
+            );
+            return;
+        }
+
+        router.post(
+            '/users/export',
+            {
+                format,
+                role: selectedRole !== '' ? selectedRole : null,
+            },
+            {
+                preserveScroll: true,
+            },
+        );
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="User Management" />
@@ -145,14 +172,72 @@ export default function UsersIndex({
                                     {users.total} {users.total === 1 ? 'user' : 'users'} found
                                 </p>
                             </div>
-                            {canManageUsers && (
-                                <Link
-                                    href="/users/create"
-                                    className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
-                                >
-                                    Add New User
-                                </Link>
-                            )}
+                            <div className="flex flex-wrap items-center gap-3">
+                                {canManageUsers && (
+                                    <Link
+                                        href="/users/create"
+                                        className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
+                                    >
+                                        <UserPlus className="size-4" />
+                                        Add New User
+                                    </Link>
+                                )}
+
+                                {canImportExport && (
+                                    <>
+                                        {auth.user?.role !== 'Faculty' && (
+                                            <Link
+                                                href="/users/import"
+                                                className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
+                                            >
+                                                <Upload className="size-4" />
+                                                Import
+                                            </Link>
+                                        )}
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex cursor-pointer items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
+                                                >
+                                                    <Download className="size-4" />
+                                                    Export
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent side="bottom" align="end" className="w-40">
+                                                <DropdownMenuItem asChild>
+                                                <button
+                                                    type="button"
+                                                    className="w-full cursor-pointer text-left"
+                                                    onClick={() => handleExport('csv')}
+                                                >
+                                                    CSV
+                                                </button>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                <button
+                                                    type="button"
+                                                    className="w-full cursor-pointer text-left"
+                                                    onClick={() => handleExport('xlsx')}
+                                                >
+                                                    XLSX
+                                                </button>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                <button
+                                                    type="button"
+                                                    className="w-full cursor-pointer text-left"
+                                                    onClick={() => handleExport('xls')}
+                                                >
+                                                    XLS
+                                                </button>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </>
+                                )}
+
+                            </div>
                         </div>
 
                         <div className="rounded-box border border-black/10 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/70">

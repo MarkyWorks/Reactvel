@@ -31,7 +31,7 @@ export default function CreateUser({ roleOptions }: CreateUserProps) {
         password_confirmation: '',
     });
 
-    const isCampusIdRequired = ['Faculty', 'Students'].includes(form.data.role);
+    const isCampusIdRequired = ['Faculty', 'Student'].includes(form.data.role);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -162,9 +162,7 @@ export default function CreateUser({ roleOptions }: CreateUserProps) {
                                                 required={isCampusIdRequired}
                                             />
                                         </div>
-                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                            Required for Faculty and Students. Numbers only.
-                                        </p>
+
                                         <InputError message={form.errors.campus_id} />
                                     </div>
 

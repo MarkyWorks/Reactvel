@@ -89,7 +89,7 @@ test('audit logs supports search and status filters', function () {
         ->and($users->first()['id'])->toBe($onlineUser->id)
         ->and($logs)->toHaveCount(1)
         ->and($logs->first()['user'])->toBe('Admin User')
-        ->and($logs->first()['role'])->toBe('Students');
+        ->and($logs->first()['role'])->toBe('Student');
 
     Carbon::setTestNow();
 });

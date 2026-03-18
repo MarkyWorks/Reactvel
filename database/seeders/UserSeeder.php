@@ -17,7 +17,7 @@ class UserSeeder extends Seeder
         $users = [
             [
                 'name' => 'Super Admin',
-                'email' => 'superadmin@example.com',
+                'email' => 'markcleocalbang22@gmail.com',
                 'role' => UserRoleEnum::SuperAdmin->value,
                 'campus_id' => '1002',
                 'password' => 'superadmin123',
@@ -31,7 +31,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'name' => 'Faculty Member',
-                'email' => 'faculty@example.com',
+                'email' => 'joseelroycalbang@gmail.com',
                 'role' => UserRoleEnum::Faculty->value,
                 'campus_id' => '1001',
                 'password' => 'faculty123',
@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Mark Cleo Calbang',
                 'email' => 'markcleocalbang05@gmail.com',
-                'role' => UserRoleEnum::Students->value,
+                'role' => UserRoleEnum::Student->value,
                 'campus_id' => '8220905',
                 'password' => 'M@rky123',
             ],

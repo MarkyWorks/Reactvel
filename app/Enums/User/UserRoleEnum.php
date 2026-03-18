@@ -7,5 +7,5 @@ enum UserRoleEnum: string
     case SuperAdmin = 'Super Admin';
     case Admin = 'Admin';
     case Faculty = 'Faculty';
-    case Students = 'Students';
+    case Student = 'Student';
 }

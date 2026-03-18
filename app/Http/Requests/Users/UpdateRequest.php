@@ -43,7 +43,7 @@ class UpdateRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($userId),
             ],
             'campus_id' => [
-                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Students->value], true)),
+                Rule::requiredIf(in_array($this->input('role'), [UserRoleEnum::Faculty->value, UserRoleEnum::Student->value], true)),
                 'nullable',
                 'string',
                 'max:255',
