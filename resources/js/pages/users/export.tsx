@@ -98,6 +98,7 @@ export default function UsersExport({ exports, requestedDate }: UsersExportProps
     const notifiedIds = useRef(new Set<string>());
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setRows(exports.data);
     }, [exports.data]);
 

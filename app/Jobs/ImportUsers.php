@@ -3,12 +3,14 @@
 namespace App\Jobs;
 
 use App\Imports\UsersImport;
+use App\Mail\UsersImportFinished;
 use App\Models\UserImport;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -49,11 +51,16 @@ class ImportUsers implements ShouldQueue
                 'users_saved' => $importHandler->usersSaved(),
                 'errors' => $importHandler->errors(),
             ])->save();
+
+            if ($import->users_saved > 0 && $import->user) {
+                Mail::to($import->user)->send(new UsersImportFinished($import));
+            }
         } catch (\Throwable $exception) {
             $import->forceFill([
                 'status' => 'failed',
                 'finished_at' => now(),
-                'error_message' => $exception->getMessage(),
+                'error_message' => 'User import failed. See errors for details.',
+                'errors' => [sprintf('%s: %s', $exception::class, $exception->getMessage())],
             ])->save();
 
             throw $exception;

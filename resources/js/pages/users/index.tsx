@@ -185,13 +185,15 @@ export default function UsersIndex({
 
                                 {canImportExport && (
                                     <>
-                                        <Link
-                                            href="/users/import"
-                                            className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
-                                        >
-                                            <Upload className="size-4" />
-                                            Import
-                                        </Link>
+                                        {auth.user?.role !== 'Faculty' && (
+                                            <Link
+                                                href="/users/import"
+                                                className="inline-flex items-center gap-2 py-2 text-sm font-medium text-neutral-900 underline underline-offset-4 dark:text-white"
+                                            >
+                                                <Upload className="size-4" />
+                                                Import
+                                            </Link>
+                                        )}
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <button

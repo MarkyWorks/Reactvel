@@ -6,6 +6,7 @@ use App\Enums\User\UserRoleEnum;
 use App\Http\Requests\Users\ImportRequest;
 use App\Jobs\ImportUsers;
 use App\Models\UserImport;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -60,6 +61,7 @@ class UsersImportController extends Controller
                 'status' => $import->status,
                 'error_message' => $import->error_message,
                 'errors' => $import->errors ?? [],
+                'status_url' => route('users.import.status', $import),
             ]);
 
         return Inertia::render('users/import', [
@@ -89,6 +91,24 @@ class UsersImportController extends Controller
         return back()->with('notify', [
             'type' => 'success',
             'message' => 'User import queued. We will notify you when it is complete.',
+        ]);
+    }
+
+    public function status(Request $request, UserImport $userImport): JsonResponse|RedirectResponse
+    {
+        if ($response = $this->denyIfCannotImport($request)) {
+            return $response;
+        }
+
+        return response()->json([
+            'status' => $userImport->status,
+            'started_at' => $userImport->started_at?->toDateTimeString(),
+            'finished_at' => $userImport->finished_at?->toDateTimeString(),
+            'users_read' => $userImport->users_read,
+            'users_saved' => $userImport->users_saved,
+            'error_message' => $userImport->error_message,
+            'errors' => $userImport->errors ?? [],
+            'done' => in_array($userImport->status, ['finished', 'failed'], true),
         ]);
     }
 }

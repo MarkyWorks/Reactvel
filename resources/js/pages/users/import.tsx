@@ -1,7 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FileUp, Upload } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -30,6 +30,7 @@ type ImportRow = {
     status: string;
     error_message: string | null;
     errors: string[];
+    status_url: string;
 };
 
 type PaginatorLink = {
@@ -87,12 +88,116 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
         users_file: null as File | null,
     });
     const [filterDate, setFilterDate] = useState(uploadedDate ?? '');
+    const [rows, setRows] = useState(imports.data);
+    const rowsRef = useRef(rows);
+    const notifiedIds = useRef(new Set<string>());
+    const [isDragging, setIsDragging] = useState(false);
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setRows(imports.data);
+    }, [imports.data]);
+
+    useEffect(() => {
+        rowsRef.current = rows;
+    }, [rows]);
+
+    useEffect(() => {
+        const notify = (type: 'success' | 'error', message: string) => {
+            window.dispatchEvent(
+                new CustomEvent('notify', {
+                    detail: {
+                        type,
+                        message,
+                    },
+                }),
+            );
+        };
+
+        const poll = async () => {
+            const pendingRows = rowsRef.current.filter((row) =>
+                ['queued', 'processing'].includes(row.status),
+            );
+
+            if (pendingRows.length === 0) {
+                return;
+            }
+
+            await Promise.all(
+                pendingRows.map(async (row) => {
+                    try {
+                        const response = await fetch(row.status_url, {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const data = await response.json();
+
+                        setRows((currentRows) =>
+                            currentRows.map((currentRow) => {
+                                if (currentRow.id !== row.id) {
+                                    return currentRow;
+                                }
+
+                                return {
+                                    ...currentRow,
+                                    status: data.status ?? currentRow.status,
+                                    started_at: data.started_at ?? currentRow.started_at,
+                                    finished_at: data.finished_at ?? currentRow.finished_at,
+                                    users_read:
+                                        typeof data.users_read === 'number'
+                                            ? data.users_read
+                                            : currentRow.users_read,
+                                    users_saved:
+                                        typeof data.users_saved === 'number'
+                                            ? data.users_saved
+                                            : currentRow.users_saved,
+                                    error_message: data.error_message ?? currentRow.error_message,
+                                    errors: Array.isArray(data.errors) ? data.errors : currentRow.errors,
+                                };
+                            }),
+                        );
+
+                        if (notifiedIds.current.has(row.id)) {
+                            return;
+                        }
+
+                        if (data.status === 'finished') {
+                            notifiedIds.current.add(row.id);
+                            notify('success', 'User import completed.');
+                        }
+
+                        if (data.status === 'failed') {
+                            notifiedIds.current.add(row.id);
+                            notify('error', data.error_message || 'User import failed.');
+                        }
+                    } catch (error) {
+                        console.error('Import status polling failed:', error);
+                    }
+                }),
+            );
+        };
+
+        const intervalId = window.setInterval(() => {
+            void poll();
+        }, 2000);
+
+        void poll();
+
+        return () => window.clearInterval(intervalId);
+    }, []);
 
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
         form.post('/users/import', {
             forceFormData: true,
+            onError: () => {
+                router.reload({ only: ['imports'] });
+            },
         });
     };
 
@@ -112,6 +217,9 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
         );
     };
 
+    const fileError = form.errors.users_file;
+    const showFileError = fileError && !fileError.includes('Row');
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Import Users" />
@@ -130,7 +238,25 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                             <form className="space-y-4" onSubmit={submit}>
                                 <label
                                     htmlFor="users_file"
-                                    className="block cursor-pointer rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:hover:border-emerald-700"
+                                    className={`block cursor-pointer rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:hover:border-emerald-700 ${isDragging ? 'border-emerald-400 bg-emerald-100/80 dark:border-emerald-600 dark:bg-emerald-900/30' : ''}`}
+                                    onDragEnter={(event) => {
+                                        event.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragOver={(event) => {
+                                        event.preventDefault();
+                                        setIsDragging(true);
+                                    }}
+                                    onDragLeave={(event) => {
+                                        event.preventDefault();
+                                        setIsDragging(false);
+                                    }}
+                                    onDrop={(event) => {
+                                        event.preventDefault();
+                                        setIsDragging(false);
+                                        const file = event.dataTransfer.files?.[0] ?? null;
+                                        form.setData('users_file', file);
+                                    }}
                                 >
                                     <input
                                         id="users_file"
@@ -152,13 +278,18 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                                                 or click to select from your computer
                                             </p>
                                         </div>
+                                        {form.data.users_file && (
+                                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                                Selected file: {form.data.users_file.name}
+                                            </p>
+                                        )}
                                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                            Required columns: campus_id, name, email, role, password
+                                            Required columns: campus_id, name, email, role
                                         </p>
                                     </div>
                                 </label>
 
-                                <InputError message={form.errors.users_file} />
+                                <InputError message={showFileError ? fileError : undefined} />
 
                                 <div className="flex items-center justify-between gap-3">
                                     <Link
@@ -241,7 +372,7 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 text-sm dark:divide-white/10">
-                                        {imports.data.length === 0 ? (
+                                        {rows.length === 0 ? (
                                             <tr>
                                                 <td
                                                     colSpan={9}
@@ -251,7 +382,7 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                                                 </td>
                                             </tr>
                                         ) : (
-                                            imports.data.map((importRow) => (
+                                            rows.map((importRow) => (
                                                 <tr key={importRow.id}>
                                                     <td className="px-3 py-3 whitespace-nowrap text-neutral-900 dark:text-neutral-100">
                                                         {formatDateTime(importRow.uploaded_at)}

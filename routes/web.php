@@ -20,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::get('users/import', [UsersImportController::class, 'create'])->name('users.import.create');
     Route::post('users/import', [UsersImportController::class, 'store'])->name('users.import.store');
+    Route::get('users/import/{userImport}/status', [UsersImportController::class, 'status'])->name('users.import.status');
     Route::get('users/export', [UsersExportController::class, 'create'])->name('users.export.create');
     Route::post('users/export', [UsersExportController::class, 'store'])->name('users.export.store');
     Route::get('users/export/{userExport}', [UsersExportController::class, 'download'])->name('users.export.download');

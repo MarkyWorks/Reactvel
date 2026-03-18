@@ -1,13 +1,22 @@
 <?php
 
+use App\Imports\UsersImport;
 use App\Jobs\ExportUsers;
 use App\Mail\UsersExportReady;
+use App\Mail\UsersImportFinished;
 use App\Models\User;
 use App\Models\UserExport;
+use App\Models\UserImport;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel as ExcelFacade;
+
+uses(RefreshDatabase::class);
 
 test('authorized roles can access user import and export', function () {
     $faculty = User::factory()->create(['role' => 'Faculty']);
@@ -218,4 +227,280 @@ test('users cannot download exports that are not theirs', function () {
         ->get(route('users.export.download', $export))
         ->assertRedirect(route('users.export.create'))
         ->assertSessionHas('notify.type', 'error');
+});
+
+test('import status endpoint returns latest import progress', function () {
+    $admin = User::factory()->create(['role' => 'Admin']);
+
+    $import = UserImport::query()->create([
+        'user_id' => $admin->id,
+        'file_name' => 'users-import.csv',
+        'status' => 'processing',
+        'uploaded_at' => now(),
+        'started_at' => now(),
+        'users_read' => 5,
+        'users_saved' => 3,
+        'errors' => ['Row 2: Email already exists.'],
+    ]);
+
+    $this->actingAs($admin)
+        ->getJson(route('users.import.status', $import))
+        ->assertSuccessful()
+        ->assertJson([
+            'status' => 'processing',
+            'users_read' => 5,
+            'users_saved' => 3,
+            'errors' => ['Row 2: Email already exists.'],
+        ]);
+});
+
+test('import enforces unique campus id, name, and email', function () {
+    User::factory()->create([
+        'campus_id' => '100',
+        'name' => 'Alice Existing',
+        'email' => 'alice@example.com',
+        'role' => 'Student',
+    ]);
+
+    $import = new UsersImport(null);
+    $import->collection(collect([
+        [
+            'campus_id' => '100',
+            'name' => 'New Name',
+            'email' => 'new1@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '101',
+            'name' => 'Alice Existing',
+            'email' => 'new2@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '102',
+            'name' => 'Bob Name',
+            'email' => 'alice@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '103',
+            'name' => 'Bob Name',
+            'email' => 'bob@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '104',
+            'name' => 'Cara New',
+            'email' => 'cara@example.com',
+            'role' => 'Student',
+        ],
+    ]));
+
+    expect($import->errors())->toContain(
+        'Row 2: Campus ID already exists.',
+        'Row 3: Name already exists.',
+        'Row 4: Email already exists.',
+        'Row 5: Name already exists in this file.',
+    );
+
+    $this->assertDatabaseHas('users', [
+        'email' => 'cara@example.com',
+        'campus_id' => '104',
+        'name' => 'Cara New',
+    ]);
+});
+
+test('import requires campus id, name, email, and role', function () {
+    $import = new UsersImport(null);
+    $import->collection(collect([
+        [
+            'campus_id' => '',
+            'name' => 'Missing Campus',
+            'email' => 'missing-campus@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '200',
+            'name' => '',
+            'email' => 'missing-name@example.com',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '201',
+            'name' => 'Missing Email',
+            'email' => '',
+            'role' => 'Student',
+        ],
+        [
+            'campus_id' => '202',
+            'name' => 'Missing Role',
+            'email' => 'missing-role@example.com',
+            'role' => '',
+        ],
+    ]));
+
+    expect($import->errors())->toContain(
+        'Row 2: campus_id, name, email, and role are required.',
+        'Row 3: campus_id, name, email, and role are required.',
+        'Row 4: campus_id, name, email, and role are required.',
+        'Row 5: campus_id, name, email, and role are required.',
+    );
+});
+
+test('import reports all existing field errors on the same row', function () {
+    User::factory()->create([
+        'campus_id' => '200',
+        'name' => 'Multi Existing',
+        'email' => 'multi@example.com',
+        'role' => 'Student',
+    ]);
+
+    $import = new UsersImport(null);
+    $import->collection(collect([
+        [
+            'campus_id' => '200',
+            'name' => 'Multi Existing',
+            'email' => 'multi@example.com',
+            'role' => 'Student',
+        ],
+    ]));
+
+    expect($import->errors())->toContain(
+        'Row 2: Email already exists.',
+        'Row 2: Campus ID already exists.',
+        'Row 2: Name already exists.',
+    );
+});
+
+test('import generates a name-based password when missing', function () {
+    Carbon::setTestNow('2026-03-17 00:00:00');
+
+    $import = new UsersImport(null);
+    $import->collection(collect([
+        [
+            'campus_id' => '300',
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'role' => 'Student',
+        ],
+    ]));
+
+    $user = User::query()->where('email', 'jane@example.com')->firstOrFail();
+
+    expect(Hash::check('Jane'.now()->year, $user->password))->toBeTrue();
+
+    Carbon::setTestNow();
+});
+
+test('import request rejects rows that already exist', function () {
+    Queue::fake();
+    $admin = User::factory()->create(['role' => 'Admin']);
+
+    $content = implode("\n", [
+        'campus_id,name,email,role,password',
+        '100,Alpha User,alpha@example.com,Student,secret',
+        '100,Beta User,beta@example.com,Student,secret',
+        '101,Gamma User,gamma@example.com,Student,secret',
+    ]);
+
+    $file = UploadedFile::fake()->createWithContent('users.csv', $content);
+
+    $response = $this->actingAs($admin)->post(route('users.import.store'), [
+        'users_file' => $file,
+    ]);
+
+    $response->assertSessionHas('notify.type', 'success');
+    Queue::assertPushed(\App\Jobs\ImportUsers::class);
+});
+
+test('import job stores exception in errors array when it fails', function () {
+    Storage::fake('local');
+    ExcelFacade::shouldReceive('import')
+        ->once()
+        ->andThrow(new RuntimeException('Import exploded'));
+
+    $admin = User::factory()->create(['role' => 'Admin']);
+
+    $import = UserImport::query()->create([
+        'user_id' => $admin->id,
+        'file_name' => 'users-import.csv',
+        'status' => 'queued',
+        'uploaded_at' => now(),
+    ]);
+
+    $job = new \App\Jobs\ImportUsers('imports/users/file.csv', $admin->id, $import->id);
+
+    try {
+        $job->handle();
+    } catch (RuntimeException $exception) {
+        // Expected.
+    }
+
+    $import->refresh();
+
+    expect($import->status)->toBe('failed');
+    expect($import->errors)->toBeArray()->not()->toBeEmpty();
+    expect($import->errors[0])->toContain(RuntimeException::class);
+});
+
+test('import job emails saved records to the requester when finished', function () {
+    Mail::fake();
+    Storage::fake('local');
+    ExcelFacade::shouldReceive('import')
+        ->once()
+        ->andReturnUsing(function ($handler, $path) {
+            $handler->collection(collect([
+                [
+                    'campus_id' => '501',
+                    'name' => 'Email User',
+                    'email' => 'emailuser@example.com',
+                    'role' => 'Student',
+                ],
+            ]));
+        });
+
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $import = UserImport::query()->create([
+        'user_id' => $admin->id,
+        'file_name' => 'import.csv',
+        'status' => 'queued',
+        'uploaded_at' => now(),
+    ]);
+
+    $job = new \App\Jobs\ImportUsers('imports/users/file.csv', $admin->id, $import->id);
+    $job->handle();
+
+    Mail::assertSent(UsersImportFinished::class, function (UsersImportFinished $mail) use ($admin) {
+        return $mail->hasTo($admin->email);
+    });
+});
+
+test('import job does not email when there are errors and zero saved rows', function () {
+    Mail::fake();
+    Storage::fake('local');
+    ExcelFacade::shouldReceive('import')
+        ->once()
+        ->andReturnUsing(function ($handler, $path) {
+            $handler->collection(collect([
+                [
+                    'campus_id' => '700',
+                    'name' => '',
+                    'email' => '',
+                    'role' => 'Student',
+                ],
+            ]));
+        });
+
+    $admin = User::factory()->create(['role' => 'Admin']);
+    $import = UserImport::query()->create([
+        'user_id' => $admin->id,
+        'file_name' => 'import.csv',
+        'status' => 'queued',
+        'uploaded_at' => now(),
+    ]);
+
+    $job = new \App\Jobs\ImportUsers('imports/users/file.csv', $admin->id, $import->id);
+    $job->handle();
+
+    Mail::assertNotSent(UsersImportFinished::class);
 });
