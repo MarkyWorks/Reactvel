@@ -15,29 +15,15 @@ use Inertia\Response;
 
 class UsersExportController extends Controller
 {
-    private function canExportUsers(?\App\Models\User $user): bool
-    {
-        return in_array($user?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty], true);
-    }
-
-    private function denyIfCannotExport(Request $request): ?RedirectResponse
-    {
-        if ($this->canExportUsers($request->user())) {
-            return null;
-        }
-
-        return redirect()
-            ->route('users.index')
-            ->with('notify', [
-                'type' => 'error',
-                'message' => 'You are not authorized to export users.',
-            ]);
-    }
-
     public function create(Request $request): Response|RedirectResponse
     {
-        if ($response = $this->denyIfCannotExport($request)) {
-            return $response;
+        if (! in_array($request->user()?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty], true)) {
+            return redirect()
+                ->route('users.index')
+                ->with('notify', [
+                    'type' => 'error',
+                    'message' => 'You are not authorized to export users.',
+                ]);
         }
 
         $user = $request->user();
@@ -84,10 +70,6 @@ class UsersExportController extends Controller
 
     public function store(ExportRequest $request): RedirectResponse
     {
-        if ($response = $this->denyIfCannotExport($request)) {
-            return $response;
-        }
-
         $role = (string) $request->string('role')->trim();
         $exportableRoles = [UserRoleEnum::Faculty->value, UserRoleEnum::Student->value];
 
@@ -120,8 +102,13 @@ class UsersExportController extends Controller
 
     public function status(Request $request, UserExport $userExport): JsonResponse|RedirectResponse
     {
-        if ($response = $this->denyIfCannotExport($request)) {
-            return $response;
+        if (! in_array($request->user()?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty], true)) {
+            return redirect()
+                ->route('users.index')
+                ->with('notify', [
+                    'type' => 'error',
+                    'message' => 'You are not authorized to export users.',
+                ]);
         }
 
         $user = $request->user();
@@ -152,8 +139,13 @@ class UsersExportController extends Controller
 
     public function download(Request $request, UserExport $userExport): \Symfony\Component\HttpFoundation\StreamedResponse|RedirectResponse
     {
-        if ($response = $this->denyIfCannotExport($request)) {
-            return $response;
+        if (! in_array($request->user()?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty], true)) {
+            return redirect()
+                ->route('users.index')
+                ->with('notify', [
+                    'type' => 'error',
+                    'message' => 'You are not authorized to export users.',
+                ]);
         }
 
         if ($request->user()?->id !== $userExport->user_id) {

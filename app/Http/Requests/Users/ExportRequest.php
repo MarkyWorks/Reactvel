@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Users;
 
+use App\Enums\User\UserRoleEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -12,7 +13,11 @@ class ExportRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return in_array(
+            $this->user()?->role,
+            [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty],
+            true
+        );
     }
 
     /**
