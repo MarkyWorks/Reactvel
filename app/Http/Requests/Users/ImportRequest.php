@@ -14,7 +14,7 @@ class ImportRequest extends FormRequest
     {
         return in_array(
             $this->user()?->role,
-            [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty],
+            [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin],
             true
         );
     }

@@ -16,7 +16,7 @@ class UsersImportController extends Controller
 {
     private function canImportUsers(?\App\Models\User $user): bool
     {
-        return in_array($user?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin, UserRoleEnum::Faculty], true);
+        return in_array($user?->role, [UserRoleEnum::SuperAdmin, UserRoleEnum::Admin], true);
     }
 
     private function denyIfCannotImport(Request $request): ?RedirectResponse

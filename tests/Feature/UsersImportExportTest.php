@@ -19,24 +19,34 @@ use Maatwebsite\Excel\Facades\Excel as ExcelFacade;
 uses(RefreshDatabase::class);
 
 test('authorized roles can access user import and export', function () {
-    $faculty = User::factory()->create(['role' => 'Faculty']);
+    $admin = User::factory()->create(['role' => 'Admin']);
 
-    $this->actingAs($faculty)
+    $this->actingAs($admin)
         ->get(route('users.import.create'))
         ->assertOk();
 
-    $this->actingAs($faculty)
+    $this->actingAs($admin)
         ->get(route('users.export.create'))
         ->assertOk();
 });
 
-test('students cannot access user import and export', function () {
+test('faculty and students cannot access user import', function () {
+    $faculty = User::factory()->create(['role' => 'Faculty']);
     $student = User::factory()->create(['role' => 'Student']);
+
+    $this->actingAs($faculty)
+        ->get(route('users.import.create'))
+        ->assertRedirect(route('users.index'))
+        ->assertSessionHas('notify.type', 'error');
 
     $this->actingAs($student)
         ->get(route('users.import.create'))
         ->assertRedirect(route('users.index'))
         ->assertSessionHas('notify.type', 'error');
+});
+
+test('students cannot access user export', function () {
+    $student = User::factory()->create(['role' => 'Student']);
 
     $this->actingAs($student)
         ->get(route('users.export.create'))
