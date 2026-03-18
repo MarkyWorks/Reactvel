@@ -72,10 +72,6 @@ class UsersImportController extends Controller
 
     public function store(ImportRequest $request): RedirectResponse
     {
-        if ($response = $this->denyIfCannotImport($request)) {
-            return $response;
-        }
-
         $file = $request->file('users_file');
         $path = $file->storeAs('imports/users', $file->hashName());
 
