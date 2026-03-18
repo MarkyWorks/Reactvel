@@ -414,6 +414,7 @@ test('import request rejects rows that already exist', function () {
 });
 
 test('import job stores exception in errors array when it fails', function () {
+    Mail::fake();
     Storage::fake('local');
     ExcelFacade::shouldReceive('import')
         ->once()
@@ -441,6 +442,10 @@ test('import job stores exception in errors array when it fails', function () {
     expect($import->status)->toBe('failed');
     expect($import->errors)->toBeArray()->not()->toBeEmpty();
     expect($import->errors[0])->toContain(RuntimeException::class);
+
+    Mail::assertSent(UsersImportFinished::class, function (UsersImportFinished $mail) use ($admin) {
+        return $mail->hasTo($admin->email);
+    });
 });
 
 test('import job emails saved records to the requester when finished', function () {

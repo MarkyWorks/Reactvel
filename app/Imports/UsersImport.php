@@ -6,6 +6,7 @@ use App\Enums\User\UserRoleEnum;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -196,18 +197,38 @@ class UsersImport implements SkipsEmptyRows, ToCollection, WithBatchInserts, Wit
         }
 
         DB::transaction(function () use ($insertRows) {
-            User::withoutEvents(function () use ($insertRows) {
-                foreach ($insertRows as $row) {
-                    User::query()->createQuietly($row);
-                    $this->savedCount++;
-                    $this->savedRows[] = [
+            $now = now();
+
+            $insertRows
+                ->chunk(500)
+                ->each(function (Collection $chunk) use ($now) {
+                    $payload = $chunk->map(function (array $row) use ($now) {
+                        return [
+                            'id' => (string) Str::uuid(),
+                            'campus_id' => $row['campus_id'],
+                            'name' => $row['name'],
+                            'email' => $row['email'],
+                            'role' => $row['role'],
+                            'password' => Hash::make($row['password']),
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    })->values()->all();
+
+                    if ($payload === []) {
+                        return;
+                    }
+
+                    User::query()->insert($payload);
+
+                    $this->savedCount += count($payload);
+                    $this->savedRows = array_merge($this->savedRows, $chunk->map(fn (array $row) => [
                         'campus_id' => $row['campus_id'],
                         'name' => $row['name'],
                         'email' => $row['email'],
                         'role' => $row['role'],
-                    ];
-                }
-            });
+                    ])->all());
+                });
         });
     }
 

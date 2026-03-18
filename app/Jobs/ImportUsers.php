@@ -63,6 +63,14 @@ class ImportUsers implements ShouldQueue
                 'errors' => [sprintf('%s: %s', $exception::class, $exception->getMessage())],
             ])->save();
 
+            if ($import->user) {
+                try {
+                    Mail::to($import->user)->send(new UsersImportFinished($import));
+                } catch (\Throwable $mailException) {
+                    // Keep the import marked as failed even if email fails.
+                }
+            }
+
             throw $exception;
         }
     }
