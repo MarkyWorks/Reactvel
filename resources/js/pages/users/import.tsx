@@ -1,6 +1,5 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { FileUp, Upload } from 'lucide-react';
-import type { FormEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -84,14 +83,13 @@ const statusClass = (status: string) => {
 };
 
 export default function UsersImport({ imports, uploadedDate }: UsersImportProps) {
-    const form = useForm({
-        users_file: null as File | null,
-    });
     const [filterDate, setFilterDate] = useState(uploadedDate ?? '');
     const [rows, setRows] = useState(imports.data);
     const rowsRef = useRef(rows);
     const notifiedIds = useRef(new Set<string>());
     const [isDragging, setIsDragging] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -190,36 +188,6 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
         return () => window.clearInterval(intervalId);
     }, []);
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        form.post('/users/import', {
-            forceFormData: true,
-            onError: () => {
-                router.reload({ only: ['imports'] });
-            },
-        });
-    };
-
-    const submitFilter = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        router.get(
-            '/users/import',
-            {
-                uploaded_date: filterDate,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
-    };
-
-    const fileError = form.errors.users_file;
-    const showFileError = fileError && !fileError.includes('Row');
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Import Users" />
@@ -235,78 +203,100 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                         </div>
 
                         <div className="rounded-box border border-black/10 bg-white/80 p-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/70">
-                            <form className="space-y-4" onSubmit={submit}>
-                                <label
-                                    htmlFor="users_file"
-                                    className={`block cursor-pointer rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:hover:border-emerald-700 ${isDragging ? 'border-emerald-400 bg-emerald-100/80 dark:border-emerald-600 dark:bg-emerald-900/30' : ''}`}
-                                    onDragEnter={(event) => {
-                                        event.preventDefault();
-                                        setIsDragging(true);
-                                    }}
-                                    onDragOver={(event) => {
-                                        event.preventDefault();
-                                        setIsDragging(true);
-                                    }}
-                                    onDragLeave={(event) => {
-                                        event.preventDefault();
-                                        setIsDragging(false);
-                                    }}
-                                    onDrop={(event) => {
-                                        event.preventDefault();
-                                        setIsDragging(false);
-                                        const file = event.dataTransfer.files?.[0] ?? null;
-                                        form.setData('users_file', file);
-                                    }}
-                                >
-                                    <input
-                                        id="users_file"
-                                        name="users_file"
-                                        type="file"
-                                        accept=".csv,.xlsx,.xls"
-                                        className="hidden"
-                                        onChange={(event) =>
-                                            form.setData('users_file', event.target.files?.[0] ?? null)
-                                        }
-                                    />
-                                    <div className="flex flex-col items-center gap-3">
-                                        <FileUp className="size-6 text-emerald-600 dark:text-emerald-300" />
-                                        <div>
-                                            <p className="text-base font-semibold text-neutral-900 dark:text-white">
-                                                Drag and drop file here
-                                            </p>
-                                            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
-                                                or click to select from your computer
-                                            </p>
-                                        </div>
-                                        {form.data.users_file && (
-                                            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
-                                                Selected file: {form.data.users_file.name}
-                                            </p>
-                                        )}
-                                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                            Required columns: campus_id, name, email, role
-                                        </p>
-                                    </div>
-                                </label>
+                            <Form
+                                action="/users/import"
+                                method="post"
+                                className="space-y-4"
+                                onError={() => {
+                                    router.reload({ only: ['imports'] });
+                                }}
+                            >
+                                {({ errors, processing }) => {
+                                    const fileError = errors.users_file;
+                                    const showFileError = fileError && !fileError.includes('Row');
 
-                                <InputError message={showFileError ? fileError : undefined} />
+                                    return (
+                                        <>
+                                            <label
+                                                htmlFor="users_file"
+                                                className={`block cursor-pointer rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50/60 p-8 text-center transition hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-900/20 dark:hover:border-emerald-700 ${isDragging ? 'border-emerald-400 bg-emerald-100/80 dark:border-emerald-600 dark:bg-emerald-900/30' : ''}`}
+                                                onDragEnter={(event) => {
+                                                    event.preventDefault();
+                                                    setIsDragging(true);
+                                                }}
+                                                onDragOver={(event) => {
+                                                    event.preventDefault();
+                                                    setIsDragging(true);
+                                                }}
+                                                onDragLeave={(event) => {
+                                                    event.preventDefault();
+                                                    setIsDragging(false);
+                                                }}
+                                                onDrop={(event) => {
+                                                    event.preventDefault();
+                                                    setIsDragging(false);
+                                                    const file = event.dataTransfer.files?.[0] ?? null;
+                                                    setSelectedFile(file);
 
-                                <div className="flex items-center justify-between gap-3">
-                                    <Link
-                                        href="/users"
-                                        className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
-                                    >
-                                        Back to Users
-                                    </Link>
-                                    <Button type="submit" disabled={form.processing || !form.data.users_file}
-                                    >
-                                        <span className="inline-flex items-center gap-2">
-                                            Upload
-                                            <Upload className="size-4" />
-                                        </span>
-                                    </Button>
-                                </div>
-                            </form>
+                                                    if (fileInputRef.current && file) {
+                                                        const dataTransfer = new DataTransfer();
+                                                        dataTransfer.items.add(file);
+                                                        fileInputRef.current.files = dataTransfer.files;
+                                                    }
+                                                }}
+                                            >
+                                                <input
+                                                    id="users_file"
+                                                    name="users_file"
+                                                    type="file"
+                                                    accept=".csv,.xlsx,.xls"
+                                                    className="hidden"
+                                                    ref={fileInputRef}
+                                                    onChange={(event) => {
+                                                        setSelectedFile(event.target.files?.[0] ?? null);
+                                                    }}
+                                                />
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <FileUp className="size-6 text-emerald-600 dark:text-emerald-300" />
+                                                    <div>
+                                                        <p className="text-base font-semibold text-neutral-900 dark:text-white">
+                                                            Drag and drop file here
+                                                        </p>
+                                                        <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+                                                            or click to select from your computer
+                                                        </p>
+                                                    </div>
+                                                    {selectedFile && (
+                                                        <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                                                            Selected file: {selectedFile.name}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                                                        Required columns: campus_id, name, email, role
+                                                    </p>
+                                                </div>
+                                            </label>
+
+                                            <InputError message={showFileError ? fileError : undefined} />
+
+                                            <div className="flex items-center justify-between gap-3">
+                                                <Link
+                                                    href="/users"
+                                                    className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+                                                >
+                                                    Back to Users
+                                                </Link>
+                                                <Button type="submit" disabled={processing || !selectedFile}>
+                                                    <span className="inline-flex items-center gap-2">
+                                                        Upload
+                                                        <Upload className="size-4" />
+                                                    </span>
+                                                </Button>
+                                            </div>
+                                        </>
+                                    );
+                                }}
+                            </Form>
                         </div>
 
                         <div className="rounded-box border border-black/10 bg-white/40 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/40">
@@ -316,43 +306,48 @@ export default function UsersImport({ imports, uploadedDate }: UsersImportProps)
                                         Imported Users Results
                                     </h2>
 
-                                    <form className="flex items-center gap-2" onSubmit={submitFilter}>
-                                        <label
-                                            htmlFor="uploaded_date"
-                                            className="text-sm font-medium whitespace-nowrap text-neutral-700 dark:text-neutral-200"
-                                        >
-                                            Uploaded Date
-                                        </label>
-                                        <input
-                                            id="uploaded_date"
-                                            name="uploaded_date"
-                                            type="date"
-                                            value={filterDate}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                setFilterDate(value);
-                                                router.get(
-                                                    '/users/import',
-                                                    { uploaded_date: value },
-                                                    {
-                                                        preserveState: true,
-                                                        preserveScroll: true,
-                                                        replace: true,
-                                                    },
-                                                );
-                                            }}
-                                            className="rounded-box border border-black/10 bg-white p-2 text-sm text-neutral-800 shadow-none transition-colors duration-200 focus:border-black/15 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 dark:border-white/15 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-white/20 dark:focus:ring-neutral-100/15"
-                                        />
+                                    <Form
+                                        action="/users/import"
+                                        method="get"
+                                        className="flex items-center gap-2"
+                                        options={{
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                            replace: true,
+                                        }}
+                                    >
+                                        {({ submit }) => (
+                                            <>
+                                                <label
+                                                    htmlFor="uploaded_date"
+                                                    className="text-sm font-medium whitespace-nowrap text-neutral-700 dark:text-neutral-200"
+                                                >
+                                                    Uploaded Date
+                                                </label>
+                                                <input
+                                                    id="uploaded_date"
+                                                    name="uploaded_date"
+                                                    type="date"
+                                                    value={filterDate}
+                                                    onChange={(event) => {
+                                                        const value = event.target.value;
+                                                        setFilterDate(value);
+                                                        submit();
+                                                    }}
+                                                    className="rounded-box border border-black/10 bg-white p-2 text-sm text-neutral-800 shadow-none transition-colors duration-200 focus:border-black/15 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 dark:border-white/15 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-white/20 dark:focus:ring-neutral-100/15"
+                                                />
 
-                                        {filterDate !== '' && (
-                                            <Link
-                                                href="/users/import"
-                                                className="inline-flex items-center rounded-box bg-black/5 px-3 py-2 text-xs font-medium text-neutral-900 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-                                            >
-                                                Clear
-                                            </Link>
+                                                {filterDate !== '' && (
+                                                    <Link
+                                                        href="/users/import"
+                                                        className="inline-flex items-center rounded-box bg-black/5 px-3 py-2 text-xs font-medium text-neutral-900 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                                                    >
+                                                        Clear
+                                                    </Link>
+                                                )}
+                                            </>
                                         )}
-                                    </form>
+                                    </Form>
                                 </div>
                             </div>
 

@@ -1,7 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link, router } from '@inertiajs/react';
 import { useEcho } from '@laravel/echo-react';
 import { Activity, ClipboardList } from 'lucide-react';
-import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -175,23 +174,6 @@ export default function AuditLogsIndex({
         [],
     );
 
-    const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        router.get(
-            '/audit-logs',
-            {
-                search,
-                status,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
-    };
-
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Audit Logs" />
@@ -210,7 +192,16 @@ export default function AuditLogsIndex({
 
                         <div className="rounded-box border border-black/10 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/70">
                             <div className="border-b border-black/5 px-6 py-4 dark:border-white/10">
-                                <form method="GET" className="flex flex-wrap items-end gap-3" onSubmit={submitSearch}>
+                                <Form
+                                    action="/audit-logs"
+                                    method="get"
+                                    className="flex flex-wrap items-end gap-3"
+                                    options={{
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                        replace: true,
+                                    }}
+                                >
                                     <div className="min-w-[220px] flex-1">
                                         <label
                                             htmlFor="search"
@@ -269,7 +260,7 @@ export default function AuditLogsIndex({
                                             </Link>
                                         )}
                                     </div>
-                                </form>
+                                </Form>
                             </div>
                         </div>
 

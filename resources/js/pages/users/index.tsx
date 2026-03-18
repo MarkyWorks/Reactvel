@@ -1,7 +1,6 @@
-import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Form, Head, Link, router, usePage } from '@inertiajs/react';
 import { Download, EllipsisVertical, Upload, UserPlus } from 'lucide-react';
 import { useState } from 'react';
-import type { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -99,23 +98,6 @@ export default function UsersIndex({
     const [deletingUser, setDeletingUser] = useState<UserRow | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const exportableRoles = ['Student', 'Faculty'];
-
-    const submitSearch = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        router.get(
-            '/users',
-            {
-                search,
-                role: selectedRole,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
-    };
 
     const confirmDelete = () => {
         if (!deletingUser) {
@@ -242,7 +224,16 @@ export default function UsersIndex({
 
                         <div className="rounded-box border border-black/10 bg-white/80 shadow-sm backdrop-blur dark:border-white/10 dark:bg-neutral-950/70">
                             <div className="border-b border-black/5 px-6 py-4 dark:border-white/10">
-                                <form method="GET" className="flex flex-wrap items-end gap-3" onSubmit={submitSearch}>
+                                <Form
+                                    action="/users"
+                                    method="get"
+                                    className="flex flex-wrap items-end gap-3"
+                                    options={{
+                                        preserveState: true,
+                                        preserveScroll: true,
+                                        replace: true,
+                                    }}
+                                >
                                     <div className="min-w-[220px] flex-1">
                                         <label
                                             htmlFor="search"
@@ -301,7 +292,7 @@ export default function UsersIndex({
                                             </Link>
                                         )}
                                     </div>
-                                </form>
+                                </Form>
                             </div>
 
                             <div className="p-6 text-gray-900 dark:text-gray-100">

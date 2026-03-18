@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { ArrowLeft, Download } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -226,43 +226,48 @@ export default function UsersExport({ exports, requestedDate }: UsersExportProps
                                         Export History
                                     </h2>
 
-                                    <form className="flex items-center gap-2">
-                                        <label
-                                            htmlFor="requested_date"
-                                            className="text-sm font-medium whitespace-nowrap text-neutral-700 dark:text-neutral-200"
-                                        >
-                                            Requested Date
-                                        </label>
-                                        <input
-                                            id="requested_date"
-                                            name="requested_date"
-                                            type="date"
-                                            value={filterDate}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                setFilterDate(value);
-                                                router.get(
-                                                    '/users/export',
-                                                    { requested_date: value },
-                                                    {
-                                                        preserveState: true,
-                                                        preserveScroll: true,
-                                                        replace: true,
-                                                    },
-                                                );
-                                            }}
-                                            className="rounded-box border border-black/10 bg-white p-2 text-sm text-neutral-800 shadow-none transition-colors duration-200 focus:border-black/15 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 dark:border-white/15 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-white/20 dark:focus:ring-neutral-100/15"
-                                        />
+                                    <Form
+                                        action="/users/export"
+                                        method="get"
+                                        className="flex items-center gap-2"
+                                        options={{
+                                            preserveState: true,
+                                            preserveScroll: true,
+                                            replace: true,
+                                        }}
+                                    >
+                                        {({ submit }) => (
+                                            <>
+                                                <label
+                                                    htmlFor="requested_date"
+                                                    className="text-sm font-medium whitespace-nowrap text-neutral-700 dark:text-neutral-200"
+                                                >
+                                                    Requested Date
+                                                </label>
+                                                <input
+                                                    id="requested_date"
+                                                    name="requested_date"
+                                                    type="date"
+                                                    value={filterDate}
+                                                    onChange={(event) => {
+                                                        const value = event.target.value;
+                                                        setFilterDate(value);
+                                                        submit();
+                                                    }}
+                                                    className="rounded-box border border-black/10 bg-white p-2 text-sm text-neutral-800 shadow-none transition-colors duration-200 focus:border-black/15 focus:outline-none focus:ring-2 focus:ring-neutral-900/15 dark:border-white/15 dark:bg-neutral-900 dark:text-neutral-300 dark:focus:border-white/20 dark:focus:ring-neutral-100/15"
+                                                />
 
-                                        {filterDate !== '' && (
-                                            <Link
-                                                href="/users/export"
-                                                className="inline-flex items-center rounded-box bg-black/5 px-3 py-2 text-xs font-medium text-neutral-900 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-                                            >
-                                                Clear
-                                            </Link>
+                                                {filterDate !== '' && (
+                                                    <Link
+                                                        href="/users/export"
+                                                        className="inline-flex items-center rounded-box bg-black/5 px-3 py-2 text-xs font-medium text-neutral-900 transition-colors hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+                                                    >
+                                                        Clear
+                                                    </Link>
+                                                )}
+                                            </>
                                         )}
-                                    </form>
+                                    </Form>
                                 </div>
                             </div>
 
