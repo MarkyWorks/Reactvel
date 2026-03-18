@@ -87,7 +87,7 @@ class UserController extends Controller
                 $query->where('role', $role);
             })
             ->latest()
-            ->paginate(5)
+            ->paginate(10)
             ->through(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
