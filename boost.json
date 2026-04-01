@@ -1,18 +1,23 @@
 {
     "agents": [
-        "codex"
+        "claude_code",
+        "cursor"
     ],
     "guidelines": true,
-    "herd_mcp": false,
     "mcp": true,
+    "nightwatch_mcp": false,
     "packages": [
-        "inertiajs/inertia-laravel"
+        "laravel/fortify"
     ],
     "sail": false,
     "skills": [
+        "laravel-best-practices",
         "wayfinder-development",
         "pest-testing",
         "inertia-react-development",
-        "tailwindcss-development"
+        "tailwindcss-development",
+        "echo-react-development",
+        "echo-development",
+        "fortify-development"
     ]
 }
